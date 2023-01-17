@@ -1,5 +1,6 @@
 // 기본적인 베이스는 TCP를 활용한 바이트 통신과 HTTP를 이용한 요청과 응답
 
+use std::fs;
 use std::io::{prelude::*, BufReader};
 use std::net::TcpListener;
 use std::net::TcpStream;
@@ -24,5 +25,12 @@ fn handle_connection(mut stream: TcpStream) {
         .take_while(|line| !line.is_empty())
         .collect();
 
-    println!("Request: {:#?}", http_request);
+    // println!("Request: {:#?}", http_request);
+    let status_line = "HTTP/1.1 200 OK";
+    let contents = fs::read_to_string("hello.html").unwrap();
+    let length = contents.len();
+
+    let response = format!("{status_line}\r\nContent-Length: {length}\r\n\r\n{contents}");
+
+    stream.write_all(response.as_bytes()).unwrap();
 }
