@@ -20,23 +20,54 @@ fn main() {
             handle_connection(stream);
         });
     }
+
+    println!("Shutting down");
+}
+
+// for multi webserver2
+fn handle_connection(mut stream: TcpStream) {
+    let mut buffer = [0; 1024];
+    stream.read(&mut buffer).unwrap();
+
+    let get = b"GET / HTTP/1.1\r\n";
+    let sleep = b"GET /sleep HTTP/1.1\r\n";
+
+    let (status_line, filename) = if buffer.starts_with(get) {
+        ("HTTP/1.1 200 OK", "hello.html")
+    } else if buffer.starts_with(sleep) {
+        thread::sleep(Duration::from_secs(5));
+        ("HTTP/1.1 200 OK", "hello.html")
+    } else {
+        ("HTTP/1.1 404 NOT FOUND", "404.html")
+    };
+
+    let contents = fs::read_to_string(filename).unwrap();
+
+    let response = format!(
+        "{}\r\nContent-Length: {}\r\n\r\n{}",
+        status_line,
+        contents.len(),
+        contents
+    );
+
+    stream.write_all(response.as_bytes()).unwrap();
+    stream.flush().unwrap();
 }
 
 // for multi webserver
+// fn handle_connection(mut stream: TcpStream) {
+//     let buf_reader = BufReader::new(&mut stream);
+//     let request_line = buf_reader.lines().next().unwrap().unwrap();
 
-fn handle_connection(mut stream: TcpStream) {
-    let buf_reader = BufReader::new(&mut stream);
-    let request_line = buf_reader.lines().next().unwrap().unwrap();
-
-    let (status_line, filename) = match &request_line[..] {
-        "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"),
-        "GET /sleep HTTP/1.1" => {
-            thread::sleep(Duration::from_secs(5));
-            ("HTTP/1.1 200 OK", "hello.html")
-        }
-        _ => ("HTTP/1.1 404 NOT FOUND", "404.html"),
-    };
-}
+//     let (status_line, filename) = match &request_line[..] {
+//         "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"),
+//         "GET /sleep HTTP/1.1" => {
+//             thread::sleep(Duration::from_secs(5));
+//             ("HTTP/1.1 200 OK", "hello.html")
+//         }
+//         _ => ("HTTP/1.1 404 NOT FOUND", "404.html"),
+//     };
+// }
 
 // fn handle_connection(mut stream: TcpStream) {
 //     // TcpStream으로부터 데이터를 읽고 출력 기본 형태
